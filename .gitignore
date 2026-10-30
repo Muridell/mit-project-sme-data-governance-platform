@@ -1,0 +1,26 @@
+# secrets & local config — never commit these
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.benchmarks/
+.coverage
+htmlcov/
+
+# Jupyter / editors / OS
+.ipynb_checkpoints/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# local databases and logs
+*.db
+*.sqlite3
+*.log

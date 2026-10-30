@@ -1,0 +1,39 @@
+# ═══════════════════════════════════════════════════════════════
+#  Data Lineage Manifest — Plain-Language Template
+#  SME Metadata Governance Framework
+#
+#  HOW TO USE:
+#  1. Fill in each field below (plain English — no technical jargon)
+#  2. Save this file as: lineage_YYYYMMDD_jobname.yml
+#  3. Upload via: POST /v1/lineage/ingest-yaml
+#     or run: python scripts/ingest_lineage.py <filename.yml>
+# ═══════════════════════════════════════════════════════════════
+
+# REQUIRED FIELDS ─────────────────────────────────────────────
+# Where did the data come from? (database name, file name, or system name)
+data_source: "Customer Transactions Database"
+
+# What did you do to the data? (describe the transformation)
+transformation_description: "Extracted Q1 2025 customer records, removed duplicates, standardised phone number format"
+
+# What is the name of the dataset produced?
+output_dataset: "Clean Customer Records Q1 2025 v1.0"
+
+# Who is responsible for this transformation? (name or email)
+responsible_person: "steward@company.ng"
+
+# When was this transformation performed? (YYYY-MM-DD)
+date_processed: "2025-01-15"
+
+# OPTIONAL FIELDS ─────────────────────────────────────────────
+# Any notes about what happened? (quality issues, rows dropped, etc.)
+notes: "Removed 412 duplicate records. Standardised 1,847 phone numbers to +234 format."
+
+# What tool or system performed the transformation?
+tool_used: "Python (pandas)"
+
+# How many rows were input?
+input_row_count: 15420
+
+# How many rows were output?
+output_row_count: 15008

@@ -1,0 +1,108 @@
+version: "3.9"
+
+# ═══════════════════════════════════════════════════════════════
+#  SME Metadata Governance Framework — Docker Compose Stack
+#  Author : Murtadha Oduntan | 2025/A/MIT/0033
+#  Deploy : docker compose up -d
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ── PostgreSQL 15 Metadata Store ───────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: sme_governance_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       sme_governance
+      POSTGRES_USER:     gov_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-SMEGov2026}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U gov_admin -d sme_governance"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 15s
+    networks:
+      - gov_net
+
+  # ── FastAPI Governance API ──────────────────────────────────
+  api:
+    build:
+      context:    .
+      dockerfile: Dockerfile
+    container_name: sme_governance_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL:    postgresql://gov_admin:${DB_PASSWORD:-SMEGov2026}@postgres:5432/sme_governance
+      JWT_SECRET:      ${JWT_SECRET:-change-me-in-production-abc123xyz}
+      ENVIRONMENT:     ${ENVIRONMENT:-production}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./policy:/app/policy:ro
+    healthcheck:
+      test:     ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout:  5s
+      retries:  3
+      start_period: 20s
+    networks:
+      - gov_net
+
+  # ── Jupyter Lab — FAIR Scoring Notebooks ───────────────────
+  jupyter:
+    image: jupyter/scipy-notebook:python-3.11
+    container_name: sme_governance_jupyter
+    profiles: ["notebooks"]
+    restart: unless-stopped
+    environment:
+      JUPYTER_TOKEN:   ${JUPYTER_TOKEN:-smegov2026}
+      DATABASE_URL:    postgresql://gov_admin:${DB_PASSWORD:-SMEGov2026}@postgres:5432/sme_governance
+      API_BASE_URL:    http://api:8000
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./policy:/home/jovyan/policy:ro
+    ports:
+      - "8888:8888"
+    depends_on:
+      - api
+    networks:
+      - gov_net
+
+  # ── NGINX Reverse Proxy (TLS termination) ──────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: sme_governance_nginx
+    profiles: ["tls"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./scripts/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_certs:/etc/nginx/certs
+    depends_on:
+      - api
+    networks:
+      - gov_net
+
+volumes:
+  postgres_data:
+    name: sme_governance_pgdata
+  nginx_certs:
+    name: sme_governance_certs
+
+networks:
+  gov_net:
+    name: sme_governance_network
+    driver: bridge
